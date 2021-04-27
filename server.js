@@ -14,10 +14,7 @@ const server = new Server({ cert, key })
 
 server
   .start(port, host)
-  .then(() => {
-    console.log(`Server listening on "${server.host}:${server.port}"`)
-  })
   .catch(err => {
-    console.error(err)
+    server.logError(err)
     process.exit(1)
   })

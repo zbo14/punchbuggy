@@ -5,117 +5,148 @@ const util = require('../../lib/util')
 describe('lib/util', () => {
   describe('#encode()', () => {
     it('encodes a message', () => {
+      const nonce = 0
       const body = Buffer.from('foobar')
-      const buf = util.encode(body)
+      const buf = util.encode(util.MESSAGES.ID_REQUEST, nonce, body)
 
       assert(Buffer.isBuffer(buf))
-      assert.strictEqual(buf.byteLength, body.byteLength + 2)
+      assert.strictEqual(buf.byteLength, body.byteLength + 7)
     })
   })
 
   describe('#decode()', () => {
     it('decodes a message', () => {
+      const nonce = 0
       const body = Buffer.from('foobar')
-      const buf = util.encode(body)
-      const result = util.decode(buf)
+      const buf = util.encode(util.MESSAGES.ID_REQUEST, nonce, body)
+      const msg = util.decode(buf)
 
-      assert.deepStrictEqual(result, {
-        body,
-        idx: buf.byteLength
+      assert.deepStrictEqual(msg, {
+        length: body.byteLength + 5,
+        code: util.MESSAGE_CODES[util.MESSAGES.ID_REQUEST],
+        type: util.MESSAGES.ID_REQUEST,
+        nonce,
+        body
       })
     })
   })
 
-  describe('#recvMsgs()', () => {
+  describe('#receiveMessages()', () => {
     beforeEach(() => {
-      this.conn = new EventEmitter()
+      this.sock = new EventEmitter()
     })
 
     it('receives message', async () => {
       const promise = new Promise((resolve, reject) => {
-        util.recvMsgs(this.conn, reject, resolve)
+        util.receiveMessages(this.sock, reject, resolve)
       })
 
-      const head = Buffer.alloc(2)
+      const nonce = 0
       const body = Buffer.from('foobar')
+      const buf = util.encode(util.MESSAGES.ID_REQUEST, nonce, body)
 
-      head.writeUint16BE(body.byteLength)
+      this.sock.emit('data', buf)
 
-      const buf = Buffer.concat([head, body])
+      const msg = await promise
 
-      this.conn.emit('data', buf)
-
-      const result = await promise
-
-      assert.deepStrictEqual(result, body)
+      assert.deepStrictEqual(msg, {
+        length: body.byteLength + 5,
+        code: util.MESSAGE_CODES[util.MESSAGES.ID_REQUEST],
+        type: util.MESSAGES.ID_REQUEST,
+        nonce,
+        body
+      })
     })
 
     it('receives message and then fragmented message', async () => {
       const msgs = []
 
       const promise = new Promise((resolve, reject) => {
-        util.recvMsgs(this.conn, reject, msg => {
+        util.receiveMessages(this.sock, reject, msg => {
           msgs.push(msg)
           msgs.length === 2 && resolve()
         })
       })
 
-      const head1 = Buffer.alloc(2)
+      const nonce1 = 0
       const body1 = Buffer.from('foo')
+      const buf1 = util.encode(util.MESSAGES.ID_REQUEST, nonce1, body1)
 
-      head1.writeUint16BE(body1.byteLength)
-
-      const head2 = Buffer.alloc(2)
+      const nonce2 = 1
       const body2 = Buffer.from('baz')
+      const buf2 = util.encode(util.MESSAGES.CONNECT_REQUEST, nonce2, body2)
 
-      head2.writeUint16BE(body2.byteLength)
-
-      const buf1 = Buffer.concat([head1, body1, head2])
-      const buf2 = body2
-
-      this.conn.emit('data', buf1)
-      this.conn.emit('data', buf2)
+      this.sock.emit('data', buf1)
+      this.sock.emit('data', buf2)
 
       await promise
 
-      assert.deepStrictEqual(msgs, [body1, body2])
+      assert.deepStrictEqual(msgs, [
+        {
+          length: body1.byteLength + 5,
+          code: util.MESSAGE_CODES[util.MESSAGES.ID_REQUEST],
+          type: util.MESSAGES.ID_REQUEST,
+          nonce: nonce1,
+          body: body1
+        },
+        {
+          length: body2.byteLength + 5,
+          code: util.MESSAGE_CODES[util.MESSAGES.CONNECT_REQUEST],
+          type: util.MESSAGES.CONNECT_REQUEST,
+          nonce: nonce2,
+          body: body2
+        }
+      ])
     })
 
     it('receives 2 messages from a 1 buffer', async () => {
       const msgs = []
 
       const promise = new Promise((resolve, reject) => {
-        util.recvMsgs(this.conn, reject, msg => {
+        util.receiveMessages(this.sock, reject, msg => {
           msgs.push(msg)
           msgs.length === 2 && resolve()
         })
       })
 
-      const head1 = Buffer.alloc(2)
+      const nonce1 = 0
       const body1 = Buffer.from('foo')
+      const buf1 = util.encode(util.MESSAGES.ID_REQUEST, nonce1, body1)
 
-      head1.writeUint16BE(body1.byteLength)
-
-      const head2 = Buffer.alloc(2)
+      const nonce2 = 1
       const body2 = Buffer.from('baz')
+      const buf2 = util.encode(util.MESSAGES.CONNECT_REQUEST, nonce2, body2)
 
-      head2.writeUint16BE(body2.byteLength)
+      const buf = Buffer.concat([buf1, buf2])
 
-      const buf = Buffer.concat([head1, body1, head2, body2])
-
-      this.conn.emit('data', buf)
+      this.sock.emit('data', buf)
 
       await promise
 
-      assert.deepStrictEqual(msgs, [body1, body2])
+      assert.deepStrictEqual(msgs, [
+        {
+          length: body1.byteLength + 5,
+          code: util.MESSAGE_CODES[util.MESSAGES.ID_REQUEST],
+          type: util.MESSAGES.ID_REQUEST,
+          nonce: nonce1,
+          body: body1
+        },
+        {
+          length: body2.byteLength + 5,
+          code: util.MESSAGE_CODES[util.MESSAGES.CONNECT_REQUEST],
+          type: util.MESSAGES.CONNECT_REQUEST,
+          nonce: nonce2,
+          body: body2
+        }
+      ])
     })
 
     it('errors when message too long', async () => {
       const promise = new Promise((resolve, reject) => {
-        util.recvMsgs(this.conn, reject, resolve)
+        util.receiveMessages(this.sock, reject, resolve)
       })
 
-      this.conn.emit('data', Buffer.alloc(util.BUF_LEN + 1))
+      this.sock.emit('data', Buffer.alloc(util.BUFFER_LENGTH + 1))
 
       try {
         await promise

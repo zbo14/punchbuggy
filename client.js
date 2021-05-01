@@ -3,13 +3,11 @@
 const Client = require('./lib/client')
 
 const client = new Client()
-const host = process.env.HOST || undefined
-const name = process.env.NAME || ''
+const addr = process.env.ADDR || undefined
 const port = +process.env.PORT || undefined
 
 const main = async () => {
-  await client.connect(host, port)
-  await client.sendMyName(name)
+  await client.connectUDP(addr, port)
 }
 
 main().catch(err => {

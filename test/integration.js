@@ -1,22 +1,17 @@
 const assert = require('assert')
 const dgram = require('dgram')
-const fs = require('fs')
-const path = require('path')
-const UDPClient = require('../lib/udp-client')
-const UDPServer = require('../lib/udp-server')
+const net = require('net')
+const Client = require('../lib/client')
+const Server = require('../lib/server')
 const util = require('../lib/util')
-
-const fixtures = path.join(__dirname, 'fixtures')
-const cert = fs.readFileSync(path.join(fixtures, 'cert.pem'))
-const key = fs.readFileSync(path.join(fixtures, 'key.pem'))
 
 describe('integration', () => {
   describe('UDP', () => {
     beforeEach(async () => {
-      this.client1 = new UDPClient()
-      this.client2 = new UDPClient()
-      this.client3 = new UDPClient()
-      this.server = new UDPServer({ cert, key })
+      this.client1 = new Client('udp')
+      this.client2 = new Client('udp')
+      this.client3 = new Client('udp')
+      this.server = new Server()
 
       await this.server.start()
     })
@@ -25,16 +20,18 @@ describe('integration', () => {
       await this.server.stop()
     })
 
-    it('creates socket', async () => {
-      assert.strictEqual(this.client1.sock, null)
-      await this.client1.start('localhost')
-      assert(this.client1.sock instanceof dgram.Socket)
+    it('connects to server', async () => {
+      await this.client1.connectToServer('localhost')
+
+      assert(this.client1.serverSock instanceof net.Socket)
+      assert.strictEqual(this.client1.tcpSock, null)
+      assert(this.client1.udpSock instanceof dgram.Socket)
     })
 
     it('gets session ID', async () => {
       assert.strictEqual(this.client1.sid, '')
 
-      await this.client1.start('localhost')
+      await this.client1.connectToServer('localhost')
       await this.client1.requestId()
       const { sid } = this.client1
 
@@ -52,8 +49,8 @@ describe('integration', () => {
       assert.strictEqual(this.client2.peerSid, '')
 
       await Promise.all([
-        this.client1.start('localhost'),
-        this.client2.start('localhost')
+        this.client1.connectToServer('localhost'),
+        this.client2.connectToServer('localhost')
       ])
 
       await Promise.all([
@@ -77,8 +74,8 @@ describe('integration', () => {
 
     it('issues multiple connect requests', async () => {
        await Promise.all([
-        this.client1.start('localhost'),
-        this.client2.start('localhost')
+        this.client1.connectToServer('localhost'),
+        this.client2.connectToServer('localhost')
       ])
 
       await Promise.all([
@@ -94,7 +91,7 @@ describe('integration', () => {
 
         assert.fail('Should reject')
       } catch ({ message }) {
-        assert.strictEqual(message, 'Already issued connect request')
+        assert.strictEqual(message, 'Unexpected connect request')
       }
 
       assert.strictEqual(this.client1.peerAddr, '')
@@ -103,7 +100,7 @@ describe('integration', () => {
     })
 
      it('can\'t connect to self', async () => {
-      await this.client1.start('localhost')
+      await this.client1.connectToServer('localhost')
       await this.client1.requestId()
 
       try {
@@ -119,7 +116,7 @@ describe('integration', () => {
     })
 
     it('can\'t find session', async () => {
-      await this.client1.start('localhost')
+      await this.client1.connectToServer('localhost')
       await this.client1.requestId()
 
       try {
@@ -136,9 +133,9 @@ describe('integration', () => {
 
     it('can\'t connect to paired session', async () => {
        await Promise.all([
-        this.client1.start('localhost'),
-        this.client2.start('localhost'),
-        this.client3.start('localhost')
+        this.client1.connectToServer('localhost'),
+        this.client2.connectToServer('localhost'),
+        this.client3.connectToServer('localhost')
       ])
 
       await Promise.all([

@@ -79,20 +79,17 @@ describe('integration', () => {
       })
 
       it('issues multiple connect requests', async () => {
-        try {
-          await Promise.race([
-            this.client1.requestConnect(this.client2.sid),
-            this.client1.requestConnect(this.client2.sid)
-          ])
+        await Promise.all([
+          this.client1.requestConnect(this.client2.sid),
+          this.client2.requestConnect(this.client1.sid)
+        ])
 
+        try {
+          await this.client1.requestConnect(this.client2.sid)
           assert.fail('Should reject')
         } catch ({ message }) {
           assert.strictEqual(message, 'Unexpected connect request')
         }
-
-        assert.strictEqual(this.client1.peerAddr, '')
-        assert.strictEqual(this.client1.peerPort, 0)
-        assert.strictEqual(this.client1.peerSid, '')
       })
 
        it('can\'t connect to self', async () => {

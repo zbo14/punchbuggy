@@ -1,5 +1,6 @@
 const readline = require('readline')
 const Client = require('../lib/client')
+const util = require('../lib/util')
 
 const rl = readline.createInterface({
   input: process.stdin,
@@ -16,6 +17,8 @@ module.exports = async () => {
   const proto = process.env.PROTOCOL || 'udp'
 
   const client = new Client(proto)
+
+  client.isTCP && await client.calculateDelta()
 
   await client.connectToServer(addr, port)
   await client.requestId()

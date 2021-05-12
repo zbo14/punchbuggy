@@ -137,7 +137,7 @@ describe('integration', () => {
       })
     })
 
-    describe('#dial()', () => {
+    describe('#dialPeer()', () => {
       beforeEach(async () => {
         await Promise.all([
           this.client1.connectToServer('localhost'),
@@ -157,13 +157,13 @@ describe('integration', () => {
 
       it('successfully dials between peers', async () => {
          await Promise.all([
-          this.client1.dial(),
-          this.client2.dial()
+          this.client1.dialPeer(),
+          this.client2.dialPeer()
         ])
       })
 
       it('times out on dial', async () => {
-        const promise = this.client1.dial()
+        const promise = this.client1.dialPeer()
         this.clock.tick(util.DIAL_TIMEOUT)
 
         try {

@@ -8,7 +8,7 @@ describe('lib/server', () => {
   })
 
   describe('#handleDatagram()', () => {
-    it('errors if message isn\'t CONNECT_REQUEST', async () => {
+    it('errors if message isn\'t INFO_REQUEST', async () => {
       const msg = util.encode(util.MESSAGES.ID_REQUEST, 0)
 
       const promise = new Promise((resolve, reject) => {
@@ -24,7 +24,10 @@ describe('lib/server', () => {
         await promise
         assert.fail('Should reject')
       } catch ({ message }) {
-        assert.strictEqual(message, 'Unexpected message: code=6, type=ID_REQUEST from: addr=4.3.2.1, port=54321')
+        assert.strictEqual(
+          message,
+          `Unexpected message: code=${util.MESSAGE_CODES.ID_REQUEST}, type=ID_REQUEST from: addr=4.3.2.1, port=54321`
+        )
       }
     })
 

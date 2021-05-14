@@ -103,7 +103,7 @@ describe('lib/util', () => {
 
       const nonce2 = 1
       const body2 = Buffer.from('baz')
-      const buf2 = util.encode(util.MESSAGES.CONNECT_REQUEST, nonce2, body2)
+      const buf2 = util.encode(util.MESSAGES.INFO_REQUEST, nonce2, body2)
 
       this.sock.emit('data', buf1)
       this.sock.emit('data', buf2)
@@ -120,8 +120,8 @@ describe('lib/util', () => {
         },
         {
           length: body2.byteLength + 5,
-          code: util.MESSAGE_CODES[util.MESSAGES.CONNECT_REQUEST],
-          type: util.MESSAGES.CONNECT_REQUEST,
+          code: util.MESSAGE_CODES[util.MESSAGES.INFO_REQUEST],
+          type: util.MESSAGES.INFO_REQUEST,
           nonce: nonce2,
           body: body2
         }
@@ -146,7 +146,7 @@ describe('lib/util', () => {
 
       const nonce2 = 1
       const body2 = Buffer.from('baz')
-      const buf2 = util.encode(util.MESSAGES.CONNECT_REQUEST, nonce2, body2)
+      const buf2 = util.encode(util.MESSAGES.INFO_REQUEST, nonce2, body2)
 
       const buf = Buffer.concat([buf1, buf2])
 
@@ -164,8 +164,8 @@ describe('lib/util', () => {
         },
         {
           length: body2.byteLength + 5,
-          code: util.MESSAGE_CODES[util.MESSAGES.CONNECT_REQUEST],
-          type: util.MESSAGES.CONNECT_REQUEST,
+          code: util.MESSAGE_CODES[util.MESSAGES.INFO_REQUEST],
+          type: util.MESSAGES.INFO_REQUEST,
           nonce: nonce2,
           body: body2
         }

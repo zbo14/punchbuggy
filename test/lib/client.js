@@ -9,7 +9,7 @@ describe('lib/client', () => {
 
   describe('#on(\'message\')', () => {
     it('errors if message has unexpected type', async () => {
-      const msg = util.encode(util.MESSAGES.CONNECT_REQUEST, 0)
+      const msg = util.encode(util.MESSAGES.INFO_REQUEST, 0)
 
       this.client.peerAddr = '1.2.3.4'
       this.client.peerPort = 1234
@@ -29,7 +29,10 @@ describe('lib/client', () => {
         await promise
         assert.fail('Should reject')
       } catch ({ message }) {
-        assert.strictEqual(message, 'Unexpected message from peer: code=0, type=CONNECT_REQUEST')
+        assert.strictEqual(
+          message,
+          `Unexpected message from peer: code=${util.MESSAGE_CODES.INFO_REQUEST}, type=INFO_REQUEST`
+        )
       }
     })
 

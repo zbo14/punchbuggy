@@ -38,7 +38,7 @@ describe('integration', () => {
       it('errors if unexpected message from server', async () => {
         await this.client1.connectToServer('localhost')
 
-        const msg = util.encode(util.MESSAGES.CONNECT_REQUEST, 0)
+        const msg = util.encode(util.MESSAGES.INFO_REQUEST, 0)
 
         const promise = new Promise((resolve, reject) => {
           this.client1.handleError = reject
@@ -50,7 +50,10 @@ describe('integration', () => {
           await promise
           assert.fail('Should reject')
         } catch ({ message }) {
-          assert.strictEqual(message, 'Unexpected message from server: code=0, type=CONNECT_REQUEST')
+          assert.strictEqual(
+            message,
+            `Unexpected message from server: code=${util.MESSAGE_CODES.INFO_REQUEST}, type=INFO_REQUEST`
+          )
         }
       })
     })
@@ -92,7 +95,7 @@ describe('integration', () => {
       })
     })
 
-    describe('#requestConnect()', () => {
+    describe('#requestInfo()', () => {
       beforeEach(async () => {
         await Promise.all([
           this.client1.connectToServer('localhost'),
@@ -107,10 +110,10 @@ describe('integration', () => {
         ])
       })
 
-      it('connects sessions', async () => {
+      it('shares session info', async () => {
         await Promise.all([
-          this.client1.requestConnect(this.client2.sid),
-          this.client2.requestConnect(this.client1.sid)
+          this.client1.requestInfo(this.client2.sid),
+          this.client2.requestInfo(this.client1.sid)
         ])
 
         assert.strictEqual(this.client1.peerAddr, this.server.getSession(this.client2.sid).addr)
@@ -122,12 +125,12 @@ describe('integration', () => {
         assert.strictEqual(this.client2.peerSid, this.client1.sid)
       })
 
-      it('connects sessions after packets dropped', async () => {
+      it('shares session info after packets dropped', async () => {
         const handleDatagram = this.server.handleDatagram.bind(this.server)
         this.server.handleDatagram = () => {}
 
-        const promise1 = this.client1.requestConnect(this.client2.sid)
-        const promise2 = this.client2.requestConnect(this.client1.sid)
+        const promise1 = this.client1.requestInfo(this.client2.sid)
+        const promise2 = this.client2.requestInfo(this.client1.sid)
 
         this.server.handleDatagram = handleDatagram
         this.clock.tick(util.RECEIVE_TIMEOUT)
@@ -143,23 +146,23 @@ describe('integration', () => {
         assert.strictEqual(this.client2.peerSid, this.client1.sid)
       })
 
-      it('issues multiple connect requests', async () => {
+      it('issues multiple INFO_REQUESTs', async () => {
         await Promise.all([
-          this.client1.requestConnect(this.client2.sid),
-          this.client2.requestConnect(this.client1.sid)
+          this.client1.requestInfo(this.client2.sid),
+          this.client2.requestInfo(this.client1.sid)
         ])
 
         try {
-          await this.client1.requestConnect(this.client2.sid)
+          await this.client1.requestInfo(this.client2.sid)
           assert.fail('Should reject')
         } catch ({ message }) {
-          assert.strictEqual(message, 'Unexpected connect request')
+          assert.strictEqual(message, 'Unexpected info request')
         }
       })
 
-       it('can\'t connect to self', async () => {
+       it('can\'t request own info', async () => {
         try {
-          await this.client1.requestConnect(this.client1.sid)
+          await this.client1.requestInfo(this.client1.sid)
           assert.fail('Should reject')
         } catch ({ message }) {
           assert.strictEqual(message, 'Must specify other session')
@@ -172,7 +175,7 @@ describe('integration', () => {
 
       it('can\'t find session', async () => {
         try {
-          await this.client1.requestConnect('foobar')
+          await this.client1.requestInfo('foobar')
           assert.fail('Should reject')
         } catch ({ message }) {
           assert.strictEqual(message, 'Session not found')
@@ -183,17 +186,17 @@ describe('integration', () => {
         assert.strictEqual(this.client1.peerSid, '')
       })
 
-      it('can\'t connect to paired session', async () => {
+      it('can\'t request info for paired session', async () => {
         await Promise.all([
-          this.client2.requestConnect(this.client3.sid),
-          this.client3.requestConnect(this.client2.sid)
+          this.client2.requestInfo(this.client3.sid),
+          this.client3.requestInfo(this.client2.sid)
         ])
 
         try {
-          await this.client1.requestConnect(this.client2.sid)
+          await this.client1.requestInfo(this.client2.sid)
           assert.fail('Should reject')
         } catch ({ message }) {
-          assert.strictEqual(message, 'Cannot connect to session')
+          assert.strictEqual(message, 'Cannot return session info')
         }
 
         assert.strictEqual(this.client1.peerAddr, '')
@@ -215,8 +218,8 @@ describe('integration', () => {
         ])
 
         await Promise.all([
-          this.client1.requestConnect(this.client2.sid),
-          this.client2.requestConnect(this.client1.sid)
+          this.client1.requestInfo(this.client2.sid),
+          this.client2.requestInfo(this.client1.sid)
         ])
       })
 
@@ -251,6 +254,38 @@ describe('integration', () => {
   })
 
   describe('session', () => {
+    describe('#handleDialedRequest()', () => {
+      beforeEach(async () => {
+        await Promise.all([
+          this.client1.connectToServer('localhost'),
+          this.client2.connectToServer('localhost')
+        ])
+
+        await Promise.all([
+          this.client1.requestId(),
+          this.client2.requestId()
+        ])
+
+        await Promise.all([
+          this.client1.requestInfo(this.client2.sid),
+          this.client2.requestInfo(this.client1.sid)
+        ])
+      })
+
+      it('handles multiple DIALED_REQUESTs', async () => {
+        try {
+          await Promise.all([
+            this.client1.request(util.MESSAGES.DIALED_REQUEST),
+            this.client1.request(util.MESSAGES.DIALED_REQUEST)
+          ])
+
+          assert.fail('Should reject')
+        } catch ({ message }) {
+          assert.strictEqual(message, 'Unexpected dialed request')
+        }
+      })
+    })
+
     describe('#handleError()', () => {
       beforeEach(async () => {
         await this.client1.connectToServer('localhost')
@@ -271,7 +306,10 @@ describe('integration', () => {
           await promise
           assert.fail('Should reject')
         } catch ({ message }) {
-          assert.strictEqual(message, 'Unexpected message from client: code=4, type=DIALED_RESPONSE')
+          assert.strictEqual(
+            message,
+            `Unexpected message from client: code=${util.MESSAGE_CODES.DIALED_RESPONSE}, type=DIALED_RESPONSE`
+          )
         }
       })
     })

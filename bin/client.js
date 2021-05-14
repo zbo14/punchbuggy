@@ -14,34 +14,15 @@ const question = prompt => new Promise(resolve => {
 module.exports = async () => {
   const addr = process.env.SERVER_ADDRESS || undefined
   const port = +process.env.SERVER_PORT || undefined
-  const proto = process.env.PROTOCOL || 'udp'
 
-  const client = new Client(proto)
-
-  client.isTCP && await client.calculateDelta()
+  const client = new Client()
 
   await client.connectToServer(addr, port)
   await client.requestId()
   const sid = await question('Enter peer session ID: ')
 
   await client.requestConnect(sid)
-  await client.dialPeer()
-  const sock = client.ejectSocket()
-
-  if (client.isTCP) {
-    sock.setEncoding('utf8')
-
-    sock.on('data', msg => {
-      client.logInfo('Message from peer: ' + msg)
-    })
-
-    while (true) {
-      const msg = await question('')
-      sock.write(msg)
-    }
-
-    return
-  }
+  const sock = await client.dialPeer()
 
   sock.on('message', (buf, rinfo) => {
     client.logInfo(`Message from \`${rinfo.address}:${rinfo.port}\`: ${buf.toString()}`)

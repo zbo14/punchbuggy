@@ -1,5 +1,6 @@
 const assert = require('assert')
 const dgram = require('dgram')
+const { getEventListeners } = require('events')
 const net = require('net')
 const fakeTimers = require('@sinonjs/fake-timers')
 const Client = require('../lib/client')
@@ -7,30 +8,62 @@ const Server = require('../lib/server')
 const util = require('../lib/util')
 
 describe('integration', () => {
-  describe('UDP', () => {
-    beforeEach(async () => {
-      this.clock = fakeTimers.install()
+  beforeEach(async () => {
+    this.clock = fakeTimers.install()
 
-      this.client1 = new Client('udp')
-      this.client2 = new Client('udp')
-      this.client3 = new Client('udp')
-      this.server = new Server()
+    this.client1 = new Client()
+    this.client2 = new Client()
+    this.client3 = new Client()
+    this.server = new Server()
 
-      await this.server.start()
-    })
+    await this.server.start()
+  })
 
-    afterEach(async () => {
-      await this.server.stop()
-      this.clock.uninstall()
-    })
+  afterEach(async () => {
+    await this.server.stop()
+    this.clock.uninstall()
+  })
 
+  describe('client', () => {
     describe('#connectToServer()', () => {
       it('connects to server', async () => {
         await this.client1.connectToServer('localhost')
 
         assert(this.client1.serverSock instanceof net.Socket)
-        assert.strictEqual(this.client1.tcpSock, null)
         assert(this.client1.udpSock instanceof dgram.Socket)
+      })
+    })
+
+    describe('#handleServerMessage()', () => {
+      it('errors if unexpected message from server', async () => {
+        await this.client1.connectToServer('localhost')
+
+        const msg = util.encode(util.MESSAGES.CONNECT_REQUEST, 0)
+
+        const promise = new Promise((resolve, reject) => {
+          this.client1.handleError = reject
+        })
+
+        this.client1.serverSock.emit('data', msg)
+
+        try {
+          await promise
+          assert.fail('Should reject')
+        } catch ({ message }) {
+          assert.strictEqual(message, 'Unexpected message from server: code=0, type=CONNECT_REQUEST')
+        }
+      })
+    })
+
+    describe('#sendToServer()', () => {
+      beforeEach(async () => {
+        await this.client1.connectToServer('localhost')
+      })
+
+      it('sets nonce to 0 once it reaches max uint32', () => {
+        this.client1.nonce = util.MAX_UINT32
+        this.client1.sendToServer(util.MESSAGES.ID_REQUEST)
+        assert.strictEqual(this.client1.nonce, 0)
       })
     })
 
@@ -45,6 +78,17 @@ describe('integration', () => {
 
         assert.strictEqual(typeof sid, 'string')
         assert.strictEqual(Buffer.from(sid, 'base64').byteLength, util.ID_LENGTH)
+      })
+
+      it('issues multiple ID requests', async () => {
+        await this.client1.requestId()
+
+        try {
+          await this.client1.requestId()
+          assert.fail('Should reject')
+        } catch ({ message }) {
+          assert.strictEqual(message, 'Unexpected id request')
+        }
       })
     })
 
@@ -68,6 +112,27 @@ describe('integration', () => {
           this.client1.requestConnect(this.client2.sid),
           this.client2.requestConnect(this.client1.sid)
         ])
+
+        assert.strictEqual(this.client1.peerAddr, this.server.getSession(this.client2.sid).addr)
+        assert.strictEqual(this.client1.peerPort, this.server.getSession(this.client2.sid).port)
+        assert.strictEqual(this.client1.peerSid, this.client2.sid)
+
+        assert.strictEqual(this.client2.peerAddr, this.server.getSession(this.client1.sid).addr)
+        assert.strictEqual(this.client2.peerPort, this.server.getSession(this.client1.sid).port)
+        assert.strictEqual(this.client2.peerSid, this.client1.sid)
+      })
+
+      it('connects sessions after packets dropped', async () => {
+        const handleDatagram = this.server.handleDatagram.bind(this.server)
+        this.server.handleDatagram = () => {}
+
+        const promise1 = this.client1.requestConnect(this.client2.sid)
+        const promise2 = this.client2.requestConnect(this.client1.sid)
+
+        this.server.handleDatagram = handleDatagram
+        this.clock.tick(util.RECEIVE_TIMEOUT)
+
+        await Promise.all([promise1, promise2])
 
         assert.strictEqual(this.client1.peerAddr, this.server.getSession(this.client2.sid).addr)
         assert.strictEqual(this.client1.peerPort, this.server.getSession(this.client2.sid).port)
@@ -156,10 +221,19 @@ describe('integration', () => {
       })
 
       it('successfully dials between peers', async () => {
-         await Promise.all([
+        const [sock1, sock2] = await Promise.all([
           this.client1.dialPeer(),
           this.client2.dialPeer()
         ])
+
+        assert.strictEqual(this.client1.dialInterval, null)
+        assert.strictEqual(this.client2.dialInterval, null)
+
+        assert(sock1 instanceof dgram.Socket)
+        assert.deepStrictEqual(getEventListeners(sock1, 'message'), [])
+
+        assert(sock2 instanceof dgram.Socket)
+        assert.deepStrictEqual(getEventListeners(sock2, 'message'), [])
       })
 
       it('times out on dial', async () => {
@@ -171,6 +245,33 @@ describe('integration', () => {
           assert.fail('Should reject')
         } catch ({ message }) {
           assert.strictEqual(message, 'Dial timeout')
+        }
+      })
+    })
+  })
+
+  describe('session', () => {
+    describe('#handleError()', () => {
+      beforeEach(async () => {
+        await this.client1.connectToServer('localhost')
+        await this.client1.requestId()
+      })
+
+      it('handles unexpected message code', async () => {
+        const msg = util.encode(util.MESSAGES.DIALED_RESPONSE, 0)
+        const session = this.server.getSession(this.client1.sid)
+
+        const promise = new Promise((resolve, reject) => {
+          session.handleError = reject
+        })
+
+        session.sock.emit('data', msg)
+
+        try {
+          await promise
+          assert.fail('Should reject')
+        } catch ({ message }) {
+          assert.strictEqual(message, 'Unexpected message from client: code=4, type=DIALED_RESPONSE')
         }
       })
     })

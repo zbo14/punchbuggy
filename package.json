@@ -1,15 +1,19 @@
 {
   "name": "punchbuggy",
   "version": "0.0.0",
-  "description": "",
+  "description": "Punch holes with confidence!",
   "main": "lib/index.js",
   "bin": "bin/index.js",
   "scripts": {
     "test": "NODE_ENV=test nyc mocha --recursive --exit"
   },
   "keywords": [
-    "TCP hole punching",
-    "UDP hole punching"
+    "NAT",
+    "UDP",
+    "hole punching",
+    "networking",
+    "p2p",
+    "peer-to-peer"
   ],
   "author": "Zachary Balder",
   "license": "MIT",
@@ -23,5 +27,17 @@
     "eslint-plugin-standard": "^5.0.0",
     "mocha": "^8.3.2",
     "nyc": "^15.1.0"
+  },
+  "nyc": {
+    "check-coverage": true,
+    "per-file": true,
+    "lines": 100,
+    "statements": 100,
+    "functions": 100,
+    "branches": 100,
+    "reporter": [
+      "html",
+      "text"
+    ]
   }
 }

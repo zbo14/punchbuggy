@@ -1,10 +1,11 @@
 const assert = require('assert')
+const { cert, key } = require('../fixtures')
 const Server = require('../../lib/server')
 const util = require('../../lib/util')
 
 describe('lib/server', () => {
   beforeEach(() => {
-    this.server = new Server()
+    this.server = new Server({ cert, key })
   })
 
   describe('#handleDatagram()', () => {

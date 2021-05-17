@@ -3,6 +3,7 @@ const dgram = require('dgram')
 const { getEventListeners } = require('events')
 const net = require('net')
 const fakeTimers = require('@sinonjs/fake-timers')
+const { cert, key } = require('./fixtures')
 const Client = require('../lib/client')
 const Server = require('../lib/server')
 const util = require('../lib/util')
@@ -14,29 +15,47 @@ describe('integration', () => {
     this.client1 = new Client()
     this.client2 = new Client()
     this.client3 = new Client()
-    this.server = new Server()
+    this.server = new Server({ cert, key })
 
-    await this.server.start()
+    await this.server.listen()
   })
 
-  afterEach(async () => {
-    await this.server.stop()
+  afterEach(() => {
+    this.server.close()
     this.clock.uninstall()
   })
 
   describe('client', () => {
     describe('#connectToServer()', () => {
       it('connects to server', async () => {
-        await this.client1.connectToServer('localhost')
+        await this.client1.connectToServer('127.0.0.1')
 
         assert(this.client1.serverSock instanceof net.Socket)
         assert(this.client1.udpSock instanceof dgram.Socket)
+      })
+
+      it('errors if addr isn\'t an ipv4 address', async () => {
+        try {
+          await this.client1.connectToServer('127.0.-0.1')
+          assert.fail('Should reject')
+        } catch ({ message }) {
+          assert.strictEqual(message, 'First argument must be an IPv4 address')
+        }
+      })
+
+      it('errors again if addr isn\'t an ipv4 address', async () => {
+        try {
+          await this.client1.connectToServer('127.0.256.1')
+          assert.fail('Should reject')
+        } catch ({ message }) {
+          assert.strictEqual(message, 'First argument must be an IPv4 address')
+        }
       })
     })
 
     describe('#handleServerMessage()', () => {
       it('errors if unexpected message from server', async () => {
-        await this.client1.connectToServer('localhost')
+        await this.client1.connectToServer('127.0.0.1')
 
         const msg = util.encode(util.MESSAGES.INFO_REQUEST, 0)
 
@@ -60,7 +79,7 @@ describe('integration', () => {
 
     describe('#sendToServer()', () => {
       beforeEach(async () => {
-        await this.client1.connectToServer('localhost')
+        await this.client1.connectToServer('127.0.0.1')
       })
 
       it('sets nonce to 0 once it reaches max uint32', () => {
@@ -72,7 +91,7 @@ describe('integration', () => {
 
     describe('#requestId()', () => {
       beforeEach(async () => {
-        await this.client1.connectToServer('localhost')
+        await this.client1.connectToServer('127.0.0.1')
       })
 
       it('requests session ID', async () => {
@@ -98,9 +117,9 @@ describe('integration', () => {
     describe('#requestInfo()', () => {
       beforeEach(async () => {
         await Promise.all([
-          this.client1.connectToServer('localhost'),
-          this.client2.connectToServer('localhost'),
-          this.client3.connectToServer('localhost')
+          this.client1.connectToServer('127.0.0.1'),
+          this.client2.connectToServer('127.0.0.1'),
+          this.client3.connectToServer('127.0.0.1')
         ])
 
         await Promise.all([
@@ -208,8 +227,8 @@ describe('integration', () => {
     describe('#dialPeer()', () => {
       beforeEach(async () => {
         await Promise.all([
-          this.client1.connectToServer('localhost'),
-          this.client2.connectToServer('localhost')
+          this.client1.connectToServer('127.0.0.1'),
+          this.client2.connectToServer('127.0.0.1')
         ])
 
         await Promise.all([
@@ -257,8 +276,8 @@ describe('integration', () => {
     describe('#handleDialedRequest()', () => {
       beforeEach(async () => {
         await Promise.all([
-          this.client1.connectToServer('localhost'),
-          this.client2.connectToServer('localhost')
+          this.client1.connectToServer('127.0.0.1'),
+          this.client2.connectToServer('127.0.0.1')
         ])
 
         await Promise.all([
@@ -288,7 +307,7 @@ describe('integration', () => {
 
     describe('#handleError()', () => {
       beforeEach(async () => {
-        await this.client1.connectToServer('localhost')
+        await this.client1.connectToServer('127.0.0.1')
         await this.client1.requestId()
       })
 

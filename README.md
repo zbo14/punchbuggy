@@ -34,6 +34,10 @@ Run the unit and integration tests:
 
 `$ npm test`
 
+## Linting
+
+`npm run lint`
+
 ## Contributing
 
 Go for it! Feel free to [open an issue](https://github.com/zbo14/punchbuggy/issues) or [create a pull request](https://github.com/zbo14/punchbuggy/compare/develop...).

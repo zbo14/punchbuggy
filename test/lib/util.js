@@ -38,7 +38,9 @@ describe('lib/util', () => {
 
     it('receives message', async () => {
       const promise = new Promise((resolve, reject) => {
-        util.receiveMessages(this.sock, reject, resolve)
+        util.receiveMessages(this.sock, (err, msg) => {
+          err ? reject(err) : resolve(msg)
+        })
       })
 
       const nonce = 0
@@ -58,11 +60,38 @@ describe('lib/util', () => {
       })
     })
 
+    it('receives message with fragmented length prefix', async () => {
+      const promise = new Promise((resolve, reject) => {
+        util.receiveMessages(this.sock, (err, msg) => {
+          err ? reject(err) : resolve(msg)
+        })
+      })
+
+      const nonce = 0
+      const body = Buffer.from('foobar')
+      const buf = util.encode(util.MESSAGES.ID_REQUEST, nonce, body)
+
+      this.sock.emit('data', buf.slice(0, 1))
+      this.sock.emit('data', buf.slice(1))
+
+      const msg = await promise
+
+      assert.deepStrictEqual(msg, {
+        length: body.byteLength + 5,
+        code: util.MESSAGE_CODES[util.MESSAGES.ID_REQUEST],
+        type: util.MESSAGES.ID_REQUEST,
+        nonce,
+        body
+      })
+    })
+
     it('receives message and then fragmented message', async () => {
       const msgs = []
 
       const promise = new Promise((resolve, reject) => {
-        util.receiveMessages(this.sock, reject, msg => {
+        util.receiveMessages(this.sock, (err, msg) => {
+          if (err) return reject(err)
+
           msgs.push(msg)
           msgs.length === 2 && resolve()
         })
@@ -74,7 +103,7 @@ describe('lib/util', () => {
 
       const nonce2 = 1
       const body2 = Buffer.from('baz')
-      const buf2 = util.encode(util.MESSAGES.CONNECT_REQUEST, nonce2, body2)
+      const buf2 = util.encode(util.MESSAGES.INFO_REQUEST, nonce2, body2)
 
       this.sock.emit('data', buf1)
       this.sock.emit('data', buf2)
@@ -91,8 +120,8 @@ describe('lib/util', () => {
         },
         {
           length: body2.byteLength + 5,
-          code: util.MESSAGE_CODES[util.MESSAGES.CONNECT_REQUEST],
-          type: util.MESSAGES.CONNECT_REQUEST,
+          code: util.MESSAGE_CODES[util.MESSAGES.INFO_REQUEST],
+          type: util.MESSAGES.INFO_REQUEST,
           nonce: nonce2,
           body: body2
         }
@@ -103,7 +132,9 @@ describe('lib/util', () => {
       const msgs = []
 
       const promise = new Promise((resolve, reject) => {
-        util.receiveMessages(this.sock, reject, msg => {
+        util.receiveMessages(this.sock, (err, msg) => {
+          if (err) return reject(err)
+
           msgs.push(msg)
           msgs.length === 2 && resolve()
         })
@@ -115,7 +146,7 @@ describe('lib/util', () => {
 
       const nonce2 = 1
       const body2 = Buffer.from('baz')
-      const buf2 = util.encode(util.MESSAGES.CONNECT_REQUEST, nonce2, body2)
+      const buf2 = util.encode(util.MESSAGES.INFO_REQUEST, nonce2, body2)
 
       const buf = Buffer.concat([buf1, buf2])
 
@@ -133,8 +164,8 @@ describe('lib/util', () => {
         },
         {
           length: body2.byteLength + 5,
-          code: util.MESSAGE_CODES[util.MESSAGES.CONNECT_REQUEST],
-          type: util.MESSAGES.CONNECT_REQUEST,
+          code: util.MESSAGE_CODES[util.MESSAGES.INFO_REQUEST],
+          type: util.MESSAGES.INFO_REQUEST,
           nonce: nonce2,
           body: body2
         }
@@ -143,7 +174,9 @@ describe('lib/util', () => {
 
     it('errors when message too long', async () => {
       const promise = new Promise((resolve, reject) => {
-        util.receiveMessages(this.sock, reject, resolve)
+        util.receiveMessages(this.sock, (err, msg) => {
+          err ? reject(err) : resolve(msg)
+        })
       })
 
       this.sock.emit('data', Buffer.alloc(util.BUFFER_LENGTH + 1))
@@ -152,7 +185,7 @@ describe('lib/util', () => {
         await promise
         assert.fail('Should reject')
       } catch ({ message }) {
-        assert.strictEqual(message, 'Buffer overflow: message too long')
+        assert.strictEqual(message, 'Buffer overflow: message from sender is too long')
       }
     })
   })

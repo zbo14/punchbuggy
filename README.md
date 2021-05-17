@@ -14,7 +14,15 @@ Both the server and client can be run from the command line.
 
 ### Server
 
-`$ [ADDRESS=<ip_address>] [PORT=<port>] punchbuggy server`
+First, you'll need to generate a private key and self-signed TLS certificate:
+
+`$ npm run gencert`
+
+This is used to encrypt traffic between clients and the server.
+
+Once the credentials are generated, you can start the server:
+
+`$ [ADDRESS=<ipv4_address>] [PORT=<port>] punchbuggy server`
 
 `ADDRESS` and `PORT` specify the local IP address and port to listen on, respectively.
 
@@ -22,11 +30,11 @@ Both the server and client can be run from the command line.
 
 ### Client
 
-`$ [SERVER_ADDRESS=<ip_address>] [SERVER_PORT=<port>] punchbuggy client`
+`$ [SERVER_ADDRESS=<ipv4_address>] [SERVER_PORT=<port>] punchbuggy client`
 
 `SERVER_ADDRESS` and `SERVER_PORT` indicate the remote server address and port to connect to, respectively.
 
-`SERVER_ADDRESS` defaults to "localhost" and `SERVER_PORT` defaults to 12435.
+`SERVER_ADDRESS` defaults to "127.0.0.1" and `SERVER_PORT` defaults to 12435.
 
 ## Tests
 

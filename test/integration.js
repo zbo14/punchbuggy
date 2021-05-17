@@ -28,7 +28,7 @@ describe('integration', () => {
   describe('client', () => {
     describe('#connectToServer()', () => {
       it('connects to server', async () => {
-        await this.client1.connectToServer('127.0.0.1')
+        await this.client1.connectToServer()
 
         assert(this.client1.serverSock instanceof net.Socket)
         assert(this.client1.udpSock instanceof dgram.Socket)
@@ -55,7 +55,7 @@ describe('integration', () => {
 
     describe('#handleServerMessage()', () => {
       it('errors if unexpected message from server', async () => {
-        await this.client1.connectToServer('127.0.0.1')
+        await this.client1.connectToServer()
 
         const msg = util.encode(util.MESSAGES.INFO_REQUEST, 0)
 
@@ -79,7 +79,7 @@ describe('integration', () => {
 
     describe('#sendToServer()', () => {
       beforeEach(async () => {
-        await this.client1.connectToServer('127.0.0.1')
+        await this.client1.connectToServer()
       })
 
       it('sets nonce to 0 once it reaches max uint32', () => {
@@ -91,7 +91,7 @@ describe('integration', () => {
 
     describe('#requestId()', () => {
       beforeEach(async () => {
-        await this.client1.connectToServer('127.0.0.1')
+        await this.client1.connectToServer()
       })
 
       it('requests session ID', async () => {
@@ -117,9 +117,9 @@ describe('integration', () => {
     describe('#requestInfo()', () => {
       beforeEach(async () => {
         await Promise.all([
-          this.client1.connectToServer('127.0.0.1'),
-          this.client2.connectToServer('127.0.0.1'),
-          this.client3.connectToServer('127.0.0.1')
+          this.client1.connectToServer(),
+          this.client2.connectToServer(),
+          this.client3.connectToServer()
         ])
 
         await Promise.all([
@@ -227,8 +227,8 @@ describe('integration', () => {
     describe('#dialPeer()', () => {
       beforeEach(async () => {
         await Promise.all([
-          this.client1.connectToServer('127.0.0.1'),
-          this.client2.connectToServer('127.0.0.1')
+          this.client1.connectToServer(),
+          this.client2.connectToServer()
         ])
 
         await Promise.all([
@@ -276,8 +276,8 @@ describe('integration', () => {
     describe('#handleDialedRequest()', () => {
       beforeEach(async () => {
         await Promise.all([
-          this.client1.connectToServer('127.0.0.1'),
-          this.client2.connectToServer('127.0.0.1')
+          this.client1.connectToServer(),
+          this.client2.connectToServer()
         ])
 
         await Promise.all([
@@ -307,7 +307,7 @@ describe('integration', () => {
 
     describe('#handleError()', () => {
       beforeEach(async () => {
-        await this.client1.connectToServer('127.0.0.1')
+        await this.client1.connectToServer()
         await this.client1.requestId()
       })
 

@@ -24,7 +24,7 @@ module.exports = async () => {
     const sid = await question('Enter peer session ID: ')
 
     try {
-      await client.requestConnect(sid)
+      await client.requestInfo(sid)
       break
     } catch (err) {
       util.log.error(err.message)
@@ -34,7 +34,7 @@ module.exports = async () => {
   const sock = await client.dialPeer()
 
   sock.on('message', (buf, rinfo) => {
-    client.logInfo(`Message from \`${rinfo.address}:${rinfo.port}\`: ${buf.toString()}`)
+    client.logInfo('Message from peer:', buf.toString())
   })
 
   while (true) {

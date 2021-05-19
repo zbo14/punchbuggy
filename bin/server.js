@@ -15,5 +15,5 @@ module.exports = async () => {
 
   const server = new Server({ cert, key })
 
-  await server.start(port, addr)
+  await server.listen(port, addr)
 }

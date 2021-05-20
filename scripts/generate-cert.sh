@@ -14,3 +14,5 @@ openssl req \
   -keyout key.pem \
   -out cert.pem \
   -subj '/CN=punch.buggy/'
+
+sudo chown -R punchbuggy .

@@ -6,7 +6,7 @@ Lightweight, zero-dependency toolkit for UDP hole punching.
 
 ## Install
 
-Clone the repo and `$ npm i -g`.
+`$ npm i punchbuggy`
 
 ## Usage
 
@@ -16,7 +16,7 @@ Both the server and client can be run from the command line.
 
 First, you'll need to generate a private key and self-signed TLS certificate:
 
-`$ npm run gencert`
+`$ npm run cert:generate`
 
 This is used to encrypt traffic between clients and the server.
 
@@ -27,6 +27,34 @@ Once the credentials are generated, you can start the server:
 `ADDRESS` and `PORT` specify the local IP address and port to listen on, respectively.
 
 `ADDRESS` defaults to "0.0.0.0" and `PORT` defaults to 12435.
+
+#### Docker
+
+You can also create a Docker image for the server and run it in a container.
+
+##### Build
+
+Build the Docker image for the server:
+
+`npm run server:build`
+
+##### Start
+
+Run a container with the image you built previously:
+
+`npm run server:start`
+
+##### Stop
+
+Stop and remove the server container:
+
+`npm run server:stop`
+
+##### Logs
+
+Tail the server container logs:
+
+`npm run server:logs`
 
 ### Client
 
@@ -48,7 +76,7 @@ Run the unit and integration tests:
 
 ## Contributing
 
-Go for it! Feel free to [open an issue](https://github.com/zbo14/punchbuggy/issues) or [create a pull request](https://github.com/zbo14/punchbuggy/compare/develop...).
+`punchbuggy` being buggy? Want a feature added? Whatever it is, feel free to [open an issue](https://github.com/zbo14/punchbuggy/issues) and/or [create a pull request](https://github.com/zbo14/punchbuggy/compare/develop...).
 
 ## Resources
 

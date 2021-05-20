@@ -38,7 +38,7 @@ module.exports = async () => {
   })
 
   while (true) {
-    const msg = await question('')
-    sock.send(msg, client.peerPort, client.peerAddr)
+    const msg = (await question('')).trim()
+    msg && sock.send(msg, client.peerPort, client.peerAddr)
   }
 }

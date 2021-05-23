@@ -11,7 +11,7 @@
   "scripts": {
     "server:build": "bash scripts/build-server.sh",
     "lint": "eslint bin/* lib/*",
-    "cert:generate": "bash scripts/gencert.sh",
+    "cert:generate": "bash scripts/generate-cert.sh",
     "server:logs": "bash scripts/logs-server.sh",
     "server:start": "bash scripts/start-server.sh",
     "server:stop": "bash scripts/stop-server.sh",

@@ -55,10 +55,13 @@ module.exports = async () => {
   }
 
   if (resp1.publicPort === resp2.publicPort) {
-    client2.logInfo('Public ports are the same across servers')
-    client2.logInfo('Awesome! UDP hole punching is supported')
+    client2.logInfo('>> Public ports are the same across servers')
+    client2.logInfo('>> Awesome! UDP hole punching is supported')
   } else {
-    client2.logWarning('Public ports are different across servers')
-    client2.logWarning('UDP hole punching isn\'t supported on your current network')
+    client2.logWarning('>> Public ports are different across servers')
+    client2.logWarning('>> UDP hole punching isn\'t supported on your current network')
   }
+
+  sock.close()
+  process.exit()
 }

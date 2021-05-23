@@ -1,6 +1,6 @@
 const readline = require('readline')
-const Client = require('../lib/client')
-const util = require('../lib/util')
+const Client = require('../../lib/client')
+const util = require('../../lib/util')
 
 const rl = readline.createInterface({
   input: process.stdin,
@@ -31,7 +31,8 @@ module.exports = async () => {
     }
   }
 
-  const sock = await client.dialPeer()
+  await client.dialPeer()
+  const sock = client.ejectUDPSocket()
 
   sock.on('message', (buf, rinfo) => {
     client.logInfo('Message from peer:', buf.toString())

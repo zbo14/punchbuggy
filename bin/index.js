@@ -2,23 +2,25 @@
 
 'use strict'
 
-const client = require('./client')
-const server = require('./server')
+const commands = require('./commands')
 const util = require('../lib/util')
 
 const main = async () => {
-  const mode = (process.argv[2] || '').trim().toLowerCase()
+  const cmd = (process.argv[2] || '').trim().toLowerCase()
 
-  if (!mode) {
-    throw new Error('Please specify mode')
+  if (!cmd) {
+    throw new Error('Please specify command')
   }
 
-  if (mode === 'client') {
-    await client()
-  } else if (mode === 'server') {
-    await server()
-  } else {
-    throw new Error('Unrecognized mode: ' + mode)
+  switch (cmd) {
+    case 'dial':
+    case 'listen':
+    case 'test':
+      await commands[cmd]()
+      return
+
+    default:
+      throw new Error('Unrecognized command: ' + cmd)
   }
 }
 

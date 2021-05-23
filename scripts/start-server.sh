@@ -4,8 +4,8 @@ cd "$(dirname "$0")"/..
 
 docker run \
   -d \
-  -p 12435:12435 \
   --name punchbuggy \
+  --network=host \
   --restart=always \
   -v "$PWD"/private:/punchbuggy/private:ro \
   punchbuggy

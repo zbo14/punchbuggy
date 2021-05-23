@@ -1,8 +1,8 @@
 const fs = require('fs')
 const path = require('path')
-const Server = require('../lib/server')
+const Server = require('../../lib/server')
 
-const privateDir = path.resolve(__dirname, '..', 'private')
+const privateDir = path.resolve(__dirname, '..', '..', 'private')
 
 module.exports = async () => {
   const addr = process.env.ADDRESS || undefined

@@ -7,6 +7,17 @@ describe('lib/client', () => {
     this.client = new Client()
   })
 
+  describe('#requestInfo()', () => {
+    it('errors if no session id', async () => {
+      try {
+        await this.client.requestInfo()
+        assert.fail('Should reject')
+      } catch ({ message }) {
+        assert.strictEqual(message, 'Cannot send INFO_REQUEST before obtaining session id')
+      }
+    })
+  })
+
   describe('#on(\'message\')', () => {
     it('errors if message has unexpected type', async () => {
       const msg = util.encode(util.MESSAGES.INFO_REQUEST, 0)

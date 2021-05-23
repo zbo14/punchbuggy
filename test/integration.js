@@ -112,6 +112,37 @@ describe('integration', () => {
           assert.strictEqual(message, 'Unexpected id request')
         }
       })
+
+      it('errors if server can\'t generate id', async () => {
+        this.server.generateId = async () => {
+          throw new Error('whoops')
+        }
+
+        try {
+          await this.client1.requestId()
+          assert.fail('Should reject')
+        } catch ({ message }) {
+          assert.strictEqual(message, 'Service unavailable')
+        }
+      })
+
+      it('errors if server can\'t generate different id', async () => {
+        await Promise.all([
+          this.client1.requestId(),
+          this.client2.connectToServer()
+        ])
+
+        const buf = Buffer.from(this.client1.sid, 'base64')
+
+        this.server.generateId = () => Promise.resolve(buf)
+
+        try {
+          await this.client2.requestId()
+          assert.fail('Should reject')
+        } catch ({ message }) {
+          assert.strictEqual(message, 'Service unavailable')
+        }
+      })
     })
 
     describe('#requestInfo()', () => {
@@ -129,11 +160,30 @@ describe('integration', () => {
         ])
       })
 
+      it('requests own info', async () => {
+        await Promise.all([
+          this.client1.requestInfo(),
+          this.client2.requestInfo()
+        ])
+
+        assert.strictEqual(this.client1.publicAddr, this.server.getSession(this.client1.sid).addr)
+        assert.strictEqual(this.client1.publicPort, this.server.getSession(this.client1.sid).port)
+
+        assert.strictEqual(this.client2.publicAddr, this.server.getSession(this.client2.sid).addr)
+        assert.strictEqual(this.client2.publicPort, this.server.getSession(this.client2.sid).port)
+      })
+
       it('shares session info', async () => {
         await Promise.all([
           this.client1.requestInfo(this.client2.sid),
           this.client2.requestInfo(this.client1.sid)
         ])
+
+        assert.strictEqual(this.client1.publicAddr, this.server.getSession(this.client1.sid).addr)
+        assert.strictEqual(this.client1.publicPort, this.server.getSession(this.client1.sid).port)
+
+        assert.strictEqual(this.client2.publicAddr, this.server.getSession(this.client2.sid).addr)
+        assert.strictEqual(this.client2.publicPort, this.server.getSession(this.client2.sid).port)
 
         assert.strictEqual(this.client1.peerAddr, this.server.getSession(this.client2.sid).addr)
         assert.strictEqual(this.client1.peerPort, this.server.getSession(this.client2.sid).port)
@@ -243,19 +293,13 @@ describe('integration', () => {
       })
 
       it('successfully dials between peers', async () => {
-        const [sock1, sock2] = await Promise.all([
+        await Promise.all([
           this.client1.dialPeer(),
           this.client2.dialPeer()
         ])
 
         assert.strictEqual(this.client1.dialInterval, null)
         assert.strictEqual(this.client2.dialInterval, null)
-
-        assert(sock1 instanceof dgram.Socket)
-        assert.deepStrictEqual(getEventListeners(sock1, 'message'), [])
-
-        assert(sock2 instanceof dgram.Socket)
-        assert.deepStrictEqual(getEventListeners(sock2, 'message'), [])
       })
 
       it('times out on dial', async () => {
@@ -268,6 +312,56 @@ describe('integration', () => {
         } catch ({ message }) {
           assert.strictEqual(message, 'Dial timeout')
         }
+      })
+    })
+
+    describe('#ejectUDPSocket()', () => {
+      beforeEach(async () => {
+        await Promise.all([
+          this.client1.connectToServer(),
+          this.client2.connectToServer()
+        ])
+
+        await Promise.all([
+          this.client1.requestId(),
+          this.client2.requestId()
+        ])
+
+        await Promise.all([
+          this.client1.requestInfo(this.client2.sid),
+          this.client2.requestInfo(this.client1.sid)
+        ])
+
+        await Promise.all([
+          this.client1.dialPeer(),
+          this.client2.dialPeer()
+        ])
+      })
+
+      it('ejects sockets after dialing', () => {
+        const sock1 = this.client1.ejectUDPSocket()
+        const sock2 = this.client2.ejectUDPSocket()
+
+        assert(sock1 instanceof dgram.Socket)
+        assert.deepStrictEqual(getEventListeners(sock1, 'message'), [])
+
+        assert(sock2 instanceof dgram.Socket)
+        assert.deepStrictEqual(getEventListeners(sock2, 'message'), [])
+      })
+
+      it('creates new client from ejected socket', async () => {
+        const sock = this.client1.ejectUDPSocket()
+        const client = new Client(sock)
+
+        await client.connectToServer()
+        await client.requestId()
+        await client.requestInfo()
+
+        assert.strictEqual(client.localAddr, this.client1.localAddr)
+        assert.strictEqual(client.localPort, this.client1.localPort)
+
+        assert.strictEqual(client.publicAddr, this.client1.publicAddr)
+        assert.strictEqual(client.publicPort, this.client1.publicPort)
       })
     })
   })

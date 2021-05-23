@@ -1,6 +1,6 @@
 {
   "name": "punchbuggy",
-  "version": "0.0.2",
+  "version": "0.0.3",
   "description": "Punch holes with confidence!",
   "main": "lib/index.js",
   "bin": "bin/index.js",

@@ -6,7 +6,7 @@ Lightweight, zero-dependency toolkit for UDP hole punching.
 
 ## Overview
 
-`punchbuggy` allows users, presumably on NAT-ed home or office networks, to send/receive UDP datagrams *directly* to/from each other.
+`punchbuggy` allows users, presumably on NAT-ed home or office networks, to send UDP datagrams *directly* to each other.
 
 The user runs a client on their local machine, which establishes a secure connection (TLS) to a rendezvous server. The server responds with the client's contact information (i.e. public IPv4 address and port) and a peer's contact information (if requested). The client and its peer send UDP datagrams to each other and notify the rendezvous server once they receive a datagram from the other. Finally, the rendezvous server tells boths clients that they received datagrams from the other (e.g. the "hole punching" was successful). Now, the users can send datagrams directly to each other!
 

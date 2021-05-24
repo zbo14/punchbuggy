@@ -1,15 +1,5 @@
-const readline = require('readline')
 const Client = require('../../lib/client')
 const util = require('../../lib/util')
-
-const rl = readline.createInterface({
-  input: process.stdin,
-  output: process.stdout
-})
-
-const question = prompt => new Promise(resolve => {
-  rl.question(prompt, resolve)
-})
 
 module.exports = async () => {
   const addr1 = process.env.SERVER1_ADDRESS || undefined

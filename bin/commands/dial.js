@@ -12,6 +12,7 @@ const question = prompt => new Promise(resolve => {
 })
 
 module.exports = async () => {
+  const enableChat = (process.env.ENABLE_CHAT || '').trim().toLowerCase() === 'true'
   const addr = process.env.SERVER_ADDRESS || undefined
   const port = +process.env.SERVER_PORT || undefined
 
@@ -33,6 +34,17 @@ module.exports = async () => {
 
   await client.dialPeer()
   const sock = client.ejectUDPSocket()
+
+  if (!enableChat) {
+    sock.close()
+    client.logInfo('Closed UDP socket')
+    client.logInfo('You may continue communication over UDP')
+    client.logInfo(`Mapping: 0.0.0.0:${client.localPort} -> ${client.peerAddr}:${client.peerPort}`)
+    process.exit()
+  }
+
+  client.logInfo('Type a message and press "enter" to send!')
+  client.logInfo('Messages received will appear below')
 
   sock.on('message', (buf, rinfo) => {
     client.logInfo('Message from peer:', buf.toString())

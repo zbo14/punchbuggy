@@ -68,17 +68,53 @@ Tail the server container logs:
 
 Perform a synchronized, hole-punching procedure to send UDP datagrams directly to a peer:
 
-`$ [SERVER_ADDRESS=<ipv4_address>] [SERVER_PORT=<port>] punchbuggy dial`
+`$ [ENABLE_CHAT=true] [SERVER_ADDRESS=<ipv4_address>] [SERVER_PORT=<port>] punchbuggy dial`
 
 `SERVER_ADDRESS` and `SERVER_PORT` indicate the remote server address and port to connect to, respectively.
 
 `SERVER_ADDRESS` defaults to "127.0.0.1" and `SERVER_PORT` defaults to 12435.
 
-You'll be prompted to enter a peer's session ID. You must ask the user for their session ID out-of-band. Similarly, you must share your session ID since they run the smae command at roughly the same time. If the dial procedure isn't completed within a matter of minutes, it will time out.
+You'll be prompted to enter a peer's session ID. You must ask the user for their session ID out-of-band. Similarly, you must share your session ID since they run the same command at roughly the same time. If the dial procedure isn't completed on both ends within a matter of minutes, it will time out.
 
-If/when the command completes successfully, users can subsequently send plaintext messages to each other from the command line.
+If the command completes successfully and `ENABLE_CHAT` is "true", users can send plaintext messages to each other from the command line.
 
-**Note:** if users don't send messages or keep-alives, the NAT port mappings won't be perserved and the holes will become "unpunched".
+Otherwise, the UDP socket is closed, assuming other applications facilitate further peer communication. `punchbuggy` specifies the mapping of local port to remote address + port so the user can tell other applications where to bind UDP sockets and where to send datagrams.
+
+Here's a simple example with netcat:
+
+##### Alice
+
+Alice runs a netcat listener on her local port:
+
+```
+...
+
+[CLIENT] Connection to peer established
+[CLIENT] Closed socket
+[CLIENT] You may continue communication over UDP
+[CLIENT] Mapping: 0.0.0.0:47691 -> 1.2.3.4:37867
+
+$ nc -ul 47691
+```
+
+##### Bob
+
+Bob binds a socket to his local port and sends a message to Alice:
+
+```
+...
+
+[CLIENT] Connection to peer established
+[CLIENT] Closed socket
+[CLIENT] You may continue communication over UDP
+[CLIENT] Mapping: 0.0.0.0:37867 -> 6.7.8.9:47691
+
+$ echo hello | nc -up 37867 6.7.8.9 47691
+```
+
+Alice should see the greeting in her terminal!
+
+**Note:** if applications/users don't regularly send messages, the NAT port mappings won't be perserved and the holes will become "unpunched".
 
 #### Test network support for UDP hole punching
 

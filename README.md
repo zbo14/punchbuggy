@@ -42,25 +42,25 @@ You can also create a Docker image for the server and run it in a container.
 
 Build the Docker image for the server:
 
-`npm run server:build`
+`$ npm run server:build`
 
 ##### Start
 
 Run a container with the image you built previously:
 
-`npm run server:start`
+`$ npm run server:start`
 
 ##### Stop
 
 Stop and remove the server container:
 
-`npm run server:stop`
+`$ npm run server:stop`
 
 ##### Logs
 
 Tail the server container logs:
 
-`npm run server:logs`
+`$ npm run server:logs`
 
 ### Client
 
@@ -134,7 +134,7 @@ Run the unit and integration tests:
 
 ## Linting
 
-`npm run lint`
+`$ npm run lint`
 
 ## Contributing
 
